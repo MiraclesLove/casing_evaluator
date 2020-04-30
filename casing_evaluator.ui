@@ -79,6 +79,16 @@
       <height>22</height>
      </rect>
     </property>
+    <property name="dateTime">
+     <datetime>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+      <year>2020</year>
+      <month>1</month>
+      <day>1</day>
+     </datetime>
+    </property>
    </widget>
    <widget class="QLabel" name="label_9">
     <property name="geometry">
@@ -107,6 +117,16 @@
       <width>194</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="dateTime">
+     <datetime>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+      <year>2020</year>
+      <month>1</month>
+      <day>1</day>
+     </datetime>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_12">
@@ -434,6 +454,9 @@
       <height>25</height>
      </rect>
     </property>
+    <property name="text">
+     <string>139.7</string>
+    </property>
    </widget>
    <widget class="QLineEdit" name="lineEdit_2">
     <property name="geometry">
@@ -444,6 +467,9 @@
       <height>25</height>
      </rect>
     </property>
+    <property name="text">
+     <string>114.3</string>
+    </property>
    </widget>
    <widget class="QLineEdit" name="lineEdit_3">
     <property name="geometry">
@@ -453,6 +479,9 @@
       <width>79</width>
       <height>25</height>
      </rect>
+    </property>
+    <property name="text">
+     <string>12.7</string>
     </property>
    </widget>
    <widget class="QTextEdit" name="textEdit_4">
@@ -515,16 +544,6 @@
     </property>
     <property name="text">
      <string>壁厚(mm)</string>
-    </property>
-   </widget>
-   <widget class="QTableWidget" name="tableWidget_5">
-    <property name="geometry">
-     <rect>
-      <x>400</x>
-      <y>200</y>
-      <width>601</width>
-      <height>81</height>
-     </rect>
     </property>
    </widget>
   </widget>

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import io
 import numpy as np
+import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.widgets import SpanSelector, MultiCursor, RadioButtons, Button
@@ -187,6 +188,7 @@ class Matplot_class:
         ymin = round(ymin, 2)
         ymax = round(ymax, 2)
         if ymin != ymax:
+            self.lines = [] #清空一下
             print('井段为：', ymin, '-', ymax)
             self.lines.append(ymin)
             self.lines.append(ymax)
@@ -227,6 +229,12 @@ class Matplot_class:
             self.lines.append(self.Ave_value)
             self.lines.append(self.Max_value)
             print(self.lines)
+            #保存list到文件
+            self.lines_temp = pd.DataFrame(self.lines, columns=['value'])
+            writer = pd.ExcelWriter('temp.xlsx', index=False)
+            self.lines_temp.to_excel(writer, 'Sheet1')
+            writer.save()
+
             fig2 = plt.figure('截面图')
             # 设置下面所需要的参数
             barSlices1 = 24
@@ -304,7 +312,3 @@ class Matplot_class:
             del self.span3_green
             # del self.span3_yellow
             # del self.span3_cyan
-
-if __name__ == '__main__':
-    e = MatPlotApp('ning209H19-4_resample_jz.LAS')
-    # sys.exit(app.exec_())

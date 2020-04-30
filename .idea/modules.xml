@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/casing_evaluator.iml" filepath="$PROJECT_DIR$/.idea/casing_evaluator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../learning_codes/.idea/learning_codes.iml" filepath="$PROJECT_DIR$/../learning_codes/.idea/learning_codes.iml" />
     </modules>
   </component>
 </project>
