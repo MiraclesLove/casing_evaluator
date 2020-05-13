@@ -8,17 +8,32 @@ from matplotlib.widgets import SpanSelector, MultiCursor, RadioButtons, Button
 import matplotlib.font_manager as fm
 import las
 from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem, QFileDialog
+import xlrd, xlwt
 
 class Matplot_class:
     def __init__(self, fileDir):
-        self.lines = []#生成的成果list
+        self.damage_Tag = ''
+        self.lines = []  # 生成的成果list
         self.log = las.LASReader(fileDir, null_subs=np.nan)
-        self.fig1 = plt.figure('MIT油套管损伤结垢变形评价系统', figsize=(10, 8))
+        self.fig1 = plt.figure('MIT油套管快速评价系统', figsize=(12, 8))
+        xls = xlrd.open_workbook(".\\casing_data.xls")
+        table = xls.sheet_by_name('Sheet1')
+        # 注意下面几个的类型为excel单元格对象
+        self.outer_diameter = table.cell(0, 2)
+        self.inner_diameter = table.cell(0, 3)
+        self.thickness = table.cell(0, 4)
+
+        self.scale_left = float(self.inner_diameter.value) / 2 - 20
+        self.scale_right = float(self.inner_diameter.value) / 2 + 80
+
+        self.scale_left_min = float(self.inner_diameter.value) - 30
+        self.scale_right_max = float(self.inner_diameter.value) + 30
+
         # 定义RadioButtons
         axcolor = 'lightgoldenrodyellow'
-        rax = plt.axes([0.05, 0.7, 0.18, 0.15], facecolor=axcolor)
-        radio = RadioButtons(rax, (u'Penetration', u'Projection', u'Transformation'))
-        plt.subplots_adjust(left=0.35)
+        rax = plt.axes([0.75, 0.05, 0.12, 0.07], facecolor=axcolor)
+        radio = RadioButtons(rax, (u'Penetration', u'Projection', u'Transformation'), active=-1, activecolor='purple')
+        plt.subplots_adjust(bottom=0.15, top=0.95, right=0.9, left=0.10, wspace=0.60)
         radio.on_clicked(self.actionfunc)
         #####################################################################################
         # 坐标轴1
@@ -48,7 +63,7 @@ class Matplot_class:
         self.ax1.plot(self.log.data['FING23'] + 55, self.log.data['DEPT'], 'g-', lw=0.5)
         self.ax1.plot(self.log.data['FING24'] + 57.5, self.log.data['DEPT'], 'g-', lw=0.5)
 
-        self.ax1.set_xlim(40, 120)
+        self.ax1.set_xlim(self.scale_left, self.scale_right)
         self.ax1.set_ylim(self.log.start, self.log.stop)
         self.ax1.invert_yaxis()
 
@@ -91,7 +106,7 @@ class Matplot_class:
         self.ax2.plot(self.log.data['FING23'] + 55, self.log.data['DEPT'], 'g-', lw=0.5)
         self.ax2.plot(self.log.data['FING24'] + 57.5, self.log.data['DEPT'], 'g-', lw=0.5)
 
-        self.ax2.set_xlim(40, 120)
+        self.ax2.set_xlim(self.scale_left, self.scale_right)
         self.ax2.set_ylim(self.log.start, self.log.stop)
         self.ax2.invert_yaxis()
 
@@ -129,7 +144,7 @@ class Matplot_class:
         self.ax3.plot(self.log.data['FING23'] + 55, self.log.data['DEPT'], 'g-', lw=0.5)
         self.ax3.plot(self.log.data['FING24'] + 57.5, self.log.data['DEPT'], 'g-', lw=0.5)
 
-        self.ax3.set_xlim(40, 120)
+        self.ax3.set_xlim(self.scale_left, self.scale_right)
         self.ax3.set_ylim(self.log.start, self.log.stop)
         self.ax3.invert_yaxis()
 
@@ -147,7 +162,7 @@ class Matplot_class:
         self.ax4.plot(self.log.data['MINDIA'], self.log.data['DEPT'], 'b-', lw=0.5)
         self.ax4.plot(self.log.data['AVEDIA'], self.log.data['DEPT'], 'k--', lw=0.5)
 
-        self.ax4.set_xlim(20, 150)
+        self.ax4.set_xlim(self.scale_left_min, self.scale_right_max)
         self.ax4.set_ylim(self.log.start, self.log.stop)
         self.ax4.invert_yaxis()
 
@@ -188,14 +203,14 @@ class Matplot_class:
         ymin = round(ymin, 2)
         ymax = round(ymax, 2)
         if ymin != ymax:
-            self.lines = [] #清空一下
+            self.lines = []  # 清空一下
             print('井段为：', ymin, '-', ymax)
             self.lines.append(ymin)
             self.lines.append(ymax)
         elif ymin == ymax:
             print('极值深度为：', ymax)
             self.lines.append(ymax)
-            index = np.where(abs(self.log.data['DEPT'] - ymax) <= 0.01)
+            index = np.where(abs(self.log.data['DEPT'] - ymax) <= 0.02)
             index = index[0][0]
             FING01_value = self.log.data['FING01'][index]
             FING02_value = self.log.data['FING02'][index]
@@ -225,17 +240,182 @@ class Matplot_class:
             self.Ave_value = self.log.data['AVEDIA'][index]
             self.Max_value = self.log.data['MAXDIA'][index]
             print(str(self.Min_value), ' ', str(self.Ave_value), ' ', str(self.Max_value))
-            self.lines.append(self.Min_value)
-            self.lines.append(self.Ave_value)
-            self.lines.append(self.Max_value)
-            print(self.lines)
-            #保存list到文件
-            self.lines_temp = pd.DataFrame(self.lines, columns=['value'])
-            writer = pd.ExcelWriter('temp.xlsx', index=False)
-            self.lines_temp.to_excel(writer, 'Sheet1')
-            writer.save()
+            if self.damage_Tag == 'Transformation':
+                self.lines.append(round(self.Min_value, 3))
+                self.lines.append(round(self.Ave_value, 3))
+                self.lines.append(round(self.Max_value, 3))
+                print(self.lines)
+                # 保存list到文件
+                self.lines_temp = pd.DataFrame(self.lines, columns=['value'])
+                writer = pd.ExcelWriter('Transformation.xlsx', index=False)
+                self.lines_temp.to_excel(writer, 'Sheet1')
+                writer.save()
+            elif self.damage_Tag == 'Penetration':
+                All_Fingers = [FING01_value, FING02_value, FING03_value, FING04_value, FING05_value, FING06_value,
+                               FING07_value,
+                               FING08_value, FING09_value, FING10_value, FING11_value, FING12_value, FING13_value,
+                               FING14_value,
+                               FING15_value, FING16_value, FING17_value, FING18_value, FING19_value, FING20_value,
+                               FING21_value,
+                               FING22_value, FING23_value, FING24_value]
+                All_Fingers_Dict = {'FING01_value': FING01_value,
+                                    'FING02_value': FING02_value,
+                                    'FING03_value': FING03_value,
+                                    'FING04_value': FING04_value,
+                                    'FING05_value': FING05_value,
+                                    'FING06_value': FING06_value,
+                                    'FING07_value': FING07_value,
+                                    'FING08_value': FING08_value,
+                                    'FING09_value': FING09_value,
+                                    'FING10_value': FING10_value,
+                                    'FING11_value': FING11_value,
+                                    'FING12_value': FING12_value,
+                                    'FING13_value': FING13_value,
+                                    'FING14_value': FING14_value,
+                                    'FING15_value': FING15_value,
+                                    'FING16_value': FING16_value,
+                                    'FING17_value': FING17_value,
+                                    'FING18_value': FING18_value,
+                                    'FING19_value': FING19_value,
+                                    'FING20_value': FING20_value,
+                                    'FING21_value': FING21_value,
+                                    'FING22_value': FING22_value,
+                                    'FING23_value': FING23_value,
+                                    'FING24_value': FING24_value,
+                                    }
+                FING_Max_value = max(All_Fingers_Dict.values())
+                FING_String = ''
+                for key, value in All_Fingers_Dict.items():
+                    if value == FING_Max_value:
+                        FING_String = key
+                        self.lines.append(int(FING_String[4:6]))
+                        value_3_digits = round(value, 3) # 保留三位有效数字
+                        self.lines.append(value_3_digits)
+                        break
 
-            fig2 = plt.figure('截面图')
+                # 求个平均值
+                normal_Depth1 = float(self.lines[0]) - 0.2  # 在井段开始深度上方0.2m处取一个正常的点进行读值
+                normal_Depth2 = float(self.lines[0]) - 0.4  # 在井段开始深度上方0.4m处取一个正常的点进行读值
+                normal_Depth3 = float(self.lines[0]) - 0.6  # 在井段开始深度上方0.6m处取一个正常的点进行读值
+                normal_Depth4 = float(self.lines[0]) - 0.8  # 在井段开始深度上方0.8m处取一个正常的点进行读值
+                normal_Depth5 = float(self.lines[0]) - 1.0  # 在井段开始深度上方1.0m处取一个正常的点进行读值
+
+                index1 = np.where(abs(self.log.data['DEPT'] - normal_Depth1) <= 0.02)
+                index1 = index1[0][0]
+                FING_value1 = self.log.data[FING_String[0:6]][index1]
+
+                index2 = np.where(abs(self.log.data['DEPT'] - normal_Depth2) <= 0.02)
+                index2 = index2[0][0]
+                FING_value2 = self.log.data[FING_String[0:6]][index2]
+
+                index3 = np.where(abs(self.log.data['DEPT'] - normal_Depth3) <= 0.02)
+                index3 = index3[0][0]
+                FING_value3 = self.log.data[FING_String[0:6]][index3]
+
+                index4 = np.where(abs(self.log.data['DEPT'] - normal_Depth4) <= 0.02)
+                index4 = index4[0][0]
+                FING_value4 = self.log.data[FING_String[0:6]][index4]
+
+                index5 = np.where(abs(self.log.data['DEPT'] - normal_Depth5) <= 0.02)
+                index5 = index5[0][0]
+                FING_value5 = self.log.data[FING_String[0:6]][index5]
+
+                FING_value = round(sum([FING_value1, FING_value2, FING_value3, FING_value4, FING_value5]) / 5.0, 3)
+
+                self.lines.append(FING_value)
+                self.lines.append(round(self.Min_value, 3))
+                self.lines.append(round(self.Ave_value, 3))
+                self.lines.append(round(self.Max_value, 3))
+                print(self.lines)
+                # 保存list到文件
+                self.lines_temp = pd.DataFrame(self.lines, columns=['value'])
+                writer = pd.ExcelWriter('Penetration.xlsx', index=False)
+                self.lines_temp.to_excel(writer, 'Sheet1')
+                writer.save()
+            elif self.damage_Tag == 'Projection':
+                All_Fingers = [FING01_value, FING02_value, FING03_value, FING04_value, FING05_value, FING06_value,
+                               FING07_value,
+                               FING08_value, FING09_value, FING10_value, FING11_value, FING12_value, FING13_value,
+                               FING14_value,
+                               FING15_value, FING16_value, FING17_value, FING18_value, FING19_value, FING20_value,
+                               FING21_value,
+                               FING22_value, FING23_value, FING24_value]
+                All_Fingers_Dict = {'FING01_value': FING01_value,
+                                    'FING02_value': FING02_value,
+                                    'FING03_value': FING03_value,
+                                    'FING04_value': FING04_value,
+                                    'FING05_value': FING05_value,
+                                    'FING06_value': FING06_value,
+                                    'FING07_value': FING07_value,
+                                    'FING08_value': FING08_value,
+                                    'FING09_value': FING09_value,
+                                    'FING10_value': FING10_value,
+                                    'FING11_value': FING11_value,
+                                    'FING12_value': FING12_value,
+                                    'FING13_value': FING13_value,
+                                    'FING14_value': FING14_value,
+                                    'FING15_value': FING15_value,
+                                    'FING16_value': FING16_value,
+                                    'FING17_value': FING17_value,
+                                    'FING18_value': FING18_value,
+                                    'FING19_value': FING19_value,
+                                    'FING20_value': FING20_value,
+                                    'FING21_value': FING21_value,
+                                    'FING22_value': FING22_value,
+                                    'FING23_value': FING23_value,
+                                    'FING24_value': FING24_value,
+                                    }
+                FING_Min_value = min(All_Fingers_Dict.values())
+                FING_String = ''
+                for key, value in All_Fingers_Dict.items():
+                    if value == FING_Min_value:
+                        FING_String = key
+                        self.lines.append(int(FING_String[4:6]))
+                        value_3_digits = round(value, 3)  # 保留三位有效数字
+                        self.lines.append(value_3_digits)
+                        break
+
+                # 求个平均值
+                normal_Depth1 = float(self.lines[0]) - 0.2  # 在井段开始深度上方0.2m处取一个正常的点进行读值
+                normal_Depth2 = float(self.lines[0]) - 0.4  # 在井段开始深度上方0.4m处取一个正常的点进行读值
+                normal_Depth3 = float(self.lines[0]) - 0.6  # 在井段开始深度上方0.6m处取一个正常的点进行读值
+                normal_Depth4 = float(self.lines[0]) - 0.8  # 在井段开始深度上方0.8m处取一个正常的点进行读值
+                normal_Depth5 = float(self.lines[0]) - 1.0  # 在井段开始深度上方1.0m处取一个正常的点进行读值
+
+                index1 = np.where(abs(self.log.data['DEPT'] - normal_Depth1) <= 0.02)
+                index1 = index1[0][0]
+                FING_value1 = self.log.data[FING_String[0:6]][index1]
+
+                index2 = np.where(abs(self.log.data['DEPT'] - normal_Depth2) <= 0.02)
+                index2 = index2[0][0]
+                FING_value2 = self.log.data[FING_String[0:6]][index2]
+
+                index3 = np.where(abs(self.log.data['DEPT'] - normal_Depth3) <= 0.02)
+                index3 = index3[0][0]
+                FING_value3 = self.log.data[FING_String[0:6]][index3]
+
+                index4 = np.where(abs(self.log.data['DEPT'] - normal_Depth4) <= 0.02)
+                index4 = index4[0][0]
+                FING_value4 = self.log.data[FING_String[0:6]][index4]
+
+                index5 = np.where(abs(self.log.data['DEPT'] - normal_Depth5) <= 0.02)
+                index5 = index5[0][0]
+                FING_value5 = self.log.data[FING_String[0:6]][index5]
+
+                FING_value = round(sum([FING_value1, FING_value2, FING_value3, FING_value4, FING_value5]) / 5.0, 3)
+
+                self.lines.append(FING_value)
+                self.lines.append(round(self.Min_value, 3))
+                self.lines.append(round(self.Ave_value, 3))
+                self.lines.append(round(self.Max_value, 3))
+                print(self.lines)
+                # 保存list到文件
+                self.lines_temp = pd.DataFrame(self.lines, columns=['value'])
+                writer = pd.ExcelWriter('Projection.xlsx', index=False)
+                self.lines_temp.to_excel(writer, 'Sheet1')
+                writer.save()
+
+            self.fig2 = plt.figure('截面图')
             # 设置下面所需要的参数
             barSlices1 = 24
             barSlices2 = 100
@@ -256,8 +436,8 @@ class Matplot_class:
             theta1 = np.concatenate((theta1, [theta1[0]]))  # 闭合
             theta2 = np.concatenate((theta2, [theta2[0]]))  # 闭合
 
-            inside_radius = [57.15] * barSlices2
-            outside_radius = [69.85] * barSlices2
+            inside_radius = [float(self.inner_diameter.value) / 2] * barSlices2
+            outside_radius = [float(self.outer_diameter.value) / 2] * barSlices2
 
             inside_radius = np.concatenate((inside_radius, [inside_radius[0]]))  # 闭合
             outside_radius = np.concatenate((outside_radius, [outside_radius[0]]))  # 闭合
@@ -268,7 +448,7 @@ class Matplot_class:
             plt.polar(theta1, r, color="blue", linewidth=1, marker="", mfc="b", ms=10)
             plt.gca().set_theta_zero_location('N')
             # plt.gca().set_rlim(0, 57.15)  # 设置显示的极径范围
-            plt.gca().set_rlim(0, 69.85)
+            plt.gca().set_rlim(0, float(self.outer_diameter.value) / 2)
             plt.gca().fill(theta1, r, facecolor='w', alpha=0.2)  # 填充颜色
             plt.gca().fill_between(theta2, outside_radius, inside_radius, facecolor='cyan', alpha=0.8)  # 填充之间颜色
             plt.gca().patch.set_facecolor('1')
@@ -278,37 +458,44 @@ class Matplot_class:
             # plt.gca().set_thetagrids(np.arange(0, 360, 15), label)
             plt.gca().set_thetagrids(np.arange(0, 360, 360))
 
-            text_show = ''.join(['Depth:', str(ymax), 'm\nOD: 69.85mm\nID: 57.15mm\nWT: 12.7mm'])
-            plt.text(7 * np.pi / 4, 80, text_show)
+            text_show = ''.join(['Depth:', str(ymax), 'm\nOD: ', str(self.outer_diameter.value), 'mm\nID: ', \
+                                 str(self.inner_diameter.value),'mm\nWT: ', str(self.thickness.value), 'mm'])
+            plt.text(7 * np.pi / 4, 90, text_show)
             # 绘图展示
             plt.show()
-    
+
     # RadioButtons行为定义
     def actionfunc(self, damage_type):
+
         # 损伤SpanSelector对象
         self.span3_red = SpanSelector(self.ax3, self.onselect3, 'vertical', useblit=True,
-                                 rectprops=dict(alpha=0.5, facecolor='red'), span_stays=True)
+                                      rectprops=dict(alpha=0.5, facecolor='red'), span_stays=True)
         # 结垢SpanSelector对象
         self.span3_green = SpanSelector(self.ax3, self.onselect3, 'vertical', useblit=True,
-                                   rectprops=dict(alpha=0.5, facecolor='green'), span_stays=True)
+                                        rectprops=dict(alpha=0.5, facecolor='green'), span_stays=True)
         # 变形SpanSelector对象
         self.span3_yellow = SpanSelector(self.ax3, self.onselect3, 'vertical', useblit=True,
-                                    rectprops=dict(alpha=0.5, facecolor='yellow'), span_stays=True)
+                                         rectprops=dict(alpha=0.5, facecolor='yellow'), span_stays=True)
         if damage_type == 'Penetration':
             print(damage_type)
+            self.damage_Tag = 'Penetration'
             # del self.span3_red
             del self.span3_green
             del self.span3_yellow
-            # del self.span3_cyan
         elif damage_type == 'Projection':
             print(damage_type)
+            self.damage_Tag = 'Projection'
             del self.span3_red
             # del self.span3_green
             del self.span3_yellow
-            # del self.span3_cyan
         elif damage_type == 'Transformation':
             print(damage_type)
+            self.damage_Tag = 'Transformation'
             del self.span3_red
             del self.span3_green
             # del self.span3_yellow
-            # del self.span3_cyan
+
+if __name__ == "__main__":
+    fileDir = '.\\ning209H19-4_resample_jz.LAS'
+    main = Matplot_class(fileDir)
+    main.show()

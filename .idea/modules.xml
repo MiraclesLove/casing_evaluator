@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/casing_evaluator.iml" filepath="$PROJECT_DIR$/.idea/casing_evaluator.iml" />
       <module fileurl="file://$PROJECT_DIR$/../learning_codes/.idea/learning_codes.iml" filepath="$PROJECT_DIR$/../learning_codes/.idea/learning_codes.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../report_generator/.idea/report_generator.iml" filepath="$PROJECT_DIR$/../report_generator/.idea/report_generator.iml" />
     </modules>
   </component>
 </project>
